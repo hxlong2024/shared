@@ -9,14 +9,17 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="万物归藏 | 资源库", page_icon="📦", layout="centered")
 
 # ==========================================
-# 优化 1：隐藏菜单、部署按钮和页脚水印
+# 优化 1：隐藏菜单、部署按钮和页脚水印（已修复侧边栏按钮消失问题）
 # ==========================================
 hide_st_style = """
 <style>
+/* 隐藏右上角默认菜单 */
 #MainMenu {visibility: hidden;}
-header {visibility: hidden;}
+/* 隐藏底部的水印 */
 footer {visibility: hidden;}
+/* 隐藏右上角的 Deploy 按钮 */
 .stDeployButton {display: none;}
+/* 调整主页面上下内边距，让排版更紧凑 */
 .block-container {
     padding-top: 2rem;
     padding-bottom: 2rem;
