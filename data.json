@@ -1,0 +1,20 @@
+[
+  {
+    "name": "蓝奏云自动化下载脚本",
+    "description": "可以自动解析链接并批量下载的工具包。",
+    "url": "https://pan.lanzou.com/xxxxxx",
+    "code": "8a9b"
+  },
+  {
+    "name": "夸克网盘分享工具",
+    "description": "自动生成分享链接的测试程序。",
+    "url": "https://pan.quark.cn/s/yyyyyy",
+    "code": "qwer"
+  },
+  {
+    "name": "OCR 测试用图片集",
+    "description": "包含100张用于比对包装设计的测试原图。",
+    "url": "https://pan.baidu.com/s/zzzzzz",
+    "code": ""
+  }
+]

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的资源库</title>
+    <style>
+        /* 极简高级感 CSS */
+        :root {
+            --bg: #f4f5f7;
+            --card-bg: #ffffff;
+            --text-main: #172b4d;
+            --text-sub: #5e6c84;
+            --primary: #0052cc;
+            --primary-hover: #0047b3;
+            --border: #dfe1e6;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 40px 20px;
+            color: var(--text-main);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            margin: 0 0 15px 0;
+            font-size: 2.5rem;
+        }
+        .search-box {
+            width: 100%;
+            max-width: 600px;
+            padding: 15px 20px;
+            border-radius: 50px;
+            border: 1px solid var(--border);
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            outline: none;
+            transition: box-shadow 0.3s ease;
+            margin: 0 auto;
+            display: block;
+        }
+        .search-box:focus {
+            box-shadow: 0 6px 16px rgba(0, 82, 204, 0.15);
+            border-color: var(--primary);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border);
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+        }
+        .card h3 {
+            margin: 0 0 12px 0;
+            font-size: 1.2rem;
+        }
+        .card p {
+            margin: 0 0 20px 0;
+            color: var(--text-sub);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            flex-grow: 1;
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+        }
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .btn-link {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-link:hover {
+            background: var(--primary-hover);
+        }
+        .btn-code {
+            background: #e9f2ff;
+            color: var(--primary);
+        }
+        .btn-code:hover {
+            background: #d3e4ff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>📦 我的资源库</h1>
+        <input type="text" id="searchInput" class="search-box" placeholder="🔍 搜索资源名称或描述...">
+    </div>
+    
+    <div id="resourceGrid" class="grid"></div>
+</div>
+
+<script>
+    let allData = [];
+
+    // 1. 读取同目录下的 data.json
+    async function loadData() {
+        try {
+            const response = await fetch('data.json');
+            allData = await response.json();
+            renderCards(allData);
+        } catch (error) {
+            document.getElementById('resourceGrid').innerHTML = '<p style="text-align:center; width:100%;">无法加载数据，请确保存在 data.json 文件，且需通过本地服务器或 GitHub Pages 访问。</p>';
+        }
+    }
+
+    // 2. 渲染卡片到页面
+    function renderCards(data) {
+        const grid = document.getElementById('resourceGrid');
+        if(data.length === 0) {
+            grid.innerHTML = '<p style="text-align:center; width:100%; color:#5e6c84;">没有找到匹配的资源...</p>';
+            return;
+        }
+        
+        grid.innerHTML = data.map(item => `
+            <div class="card">
+                <h3>${item.name}</h3>
+                <p>${item.description}</p>
+                <div class="btn-group">
+                    <button class="btn btn-link" onclick="copyText('${item.url}', this)">🔗 复制链接</button>
+                    ${item.code ? `<button class="btn btn-code" onclick="copyText('${item.code}', this)">🔑 提取码: ${item.code}</button>` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // 3. 一键复制功能
+    function copyText(text, btnElement) {
+        navigator.clipboard.writeText(text).then(() => {
+            const originalText = btnElement.innerText;
+            btnElement.innerText = '✅ 复制成功!';
+            btnElement.style.opacity = '0.8';
+            
+            setTimeout(() => { 
+                btnElement.innerText = originalText; 
+                btnElement.style.opacity = '1';
+            }, 2000);
+        }).catch(err => {
+            alert('复制失败，请手动复制');
+        });
+    }
+
+    // 4. 实时搜索过滤功能
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        const keyword = e.target.value.toLowerCase();
+        const filteredData = allData.filter(item => 
+            item.name.toLowerCase().includes(keyword) || 
+            item.description.toLowerCase().includes(keyword)
+        );
+        renderCards(filteredData);
+    });
+
+    // 页面加载时执行
+    loadData();
+</script>
+
+</body>
+</html>
