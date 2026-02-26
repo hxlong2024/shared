@@ -4,6 +4,7 @@ import requests
 import base64
 import json
 import math
+import re
 from datetime import datetime, timedelta
 
 # 配置页面布局
@@ -123,7 +124,6 @@ page = st.sidebar.radio("选择操作", ["🌐 资源列表", "⚙️ 录入资�
 if page == "🌐 资源列表":
     st.title("📦 万物归藏")
     
-    # 搜索区
     search_col1, search_col2 = st.columns([4, 1], vertical_alignment="bottom")
     with search_col1:
         search_query = st.text_input("🔍 搜索资源名称或描述...", "")
@@ -132,12 +132,10 @@ if page == "🌐 资源列表":
         
     st.write("---") 
     
-    # 如果搜索词改变了，自动重置回第一页
     if search_query != st.session_state.last_search:
         st.session_state.current_page = 1
         st.session_state.last_search = search_query
     
-    # 获取过滤后的完整数据
     filtered_data = [
         item for item in st.session_state.resources 
         if search_query.lower() in item['name'].lower() or search_query.lower() in item.get('desc', '').lower()
@@ -146,22 +144,17 @@ if page == "🌐 资源列表":
     if not filtered_data:
         st.info("当前没有资源，或者没有搜索到匹配的内容。")
     else:
-        # 【核心新增：分页计算逻辑】
-        PAGE_SIZE = 10  # 每页显示 10 条数据（你可以随便改这个数字）
+        PAGE_SIZE = 10
         total_items = len(filtered_data)
         total_pages = math.ceil(total_items / PAGE_SIZE)
         
-        # 边界控制（防止极端情况下页码超出范围）
         if st.session_state.current_page > total_pages:
             st.session_state.current_page = total_pages
             
         start_idx = (st.session_state.current_page - 1) * PAGE_SIZE
         end_idx = start_idx + PAGE_SIZE
-        
-        # 只取当前页需要显示的数据
         paginated_data = filtered_data[start_idx:end_idx]
         
-        # 渲染当前页的卡片
         for item in paginated_data:
             with st.container(border=True):
                 st.subheader(item['name'])
@@ -176,23 +169,16 @@ if page == "🌐 资源列表":
                 with btn_col2:
                     get_copy_button(item['url'])
         
-        # 【核心新增：底部翻页控制器】
         if total_pages > 1:
-            st.write("") # 留点空隙
+            st.write("") 
             page_col1, page_col2, page_col3 = st.columns([1, 2, 1], vertical_alignment="center")
-            
             with page_col1:
-                # 只有不在第一页时，上一页按钮才可用
                 if st.button("⬅️ 上一页", disabled=(st.session_state.current_page == 1), use_container_width=True):
                     st.session_state.current_page -= 1
                     st.rerun()
-                    
             with page_col2:
-                # 居中显示当前页码
                 st.markdown(f"<div style='text-align: center; color: #666;'>第 {st.session_state.current_page} / {total_pages} 页 (共 {total_items} 条)</div>", unsafe_allow_html=True)
-                
             with page_col3:
-                # 只有不在最后一页时，下一页按钮才可用
                 if st.button("下一页 ➡️", disabled=(st.session_state.current_page == total_pages), use_container_width=True):
                     st.session_state.current_page += 1
                     st.rerun()
@@ -201,38 +187,101 @@ if page == "🌐 资源列表":
 elif page == "⚙️ 录入资源":
     st.title("⚙️ 新增资源")
     
-    with st.form("add_resource_form", clear_on_submit=True):
-        new_name = st.text_input("资源名称 (必填)*")
-        new_desc = st.text_area("资源描述 (选填)")
-        new_url = st.text_input("资源链接 (必填)*")
-        admin_pwd = st.text_input("管理员密码 (必填)*", type="password")
-        
-        submitted = st.form_submit_button("🚀 保存并发布")
-        
-        if submitted:
-            if admin_pwd != ADMIN_PASSWORD:
-                st.error("管理员密码错误！")
-            elif not new_name or not new_url:
-                st.warning("请填写完整的资源名称和链接！")
-            else:
-                with st.spinner("正在同步至数据库..."):
-                    beijing_time = (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
-                    new_item = {
-                        "name": new_name, 
-                        "desc": new_desc, 
-                        "url": new_url,
-                        "time": beijing_time
-                    }
-                    st.session_state.resources.insert(0, new_item)
-                    
-                    success = save_data_to_github(st.session_state.resources, st.session_state.file_sha)
-                    if success:
-                        st.success(f"资源【{new_name}】发布成功！")
-                        # 发布新资源后，重置拉取数据并回到第一页
-                        res_data, file_sha = get_data_from_github()
-                        st.session_state.resources = res_data
-                        st.session_state.file_sha = file_sha
-                        st.session_state.current_page = 1
+    # 【核心新增】使用 Tabs 将单条录入和批量录入分开
+    tab1, tab2 = st.tabs(["📝 单条手工录入", "🚀 智能批量解析"])
+    
+    # --- Tab 1: 单条录入 ---
+    with tab1:
+        with st.form("add_resource_form", clear_on_submit=True):
+            new_name = st.text_input("资源名称 (必填)*")
+            new_desc = st.text_area("资源描述 (选填)")
+            new_url = st.text_input("资源链接 (必填)*")
+            admin_pwd = st.text_input("管理员密码 (必填)*", type="password")
+            submitted = st.form_submit_button("保存并发布")
+            
+            if submitted:
+                if admin_pwd != ADMIN_PASSWORD:
+                    st.error("管理员密码错误！")
+                elif not new_name or not new_url:
+                    st.warning("请填写完整的资源名称和链接！")
+                else:
+                    with st.spinner("正在同步至数据库..."):
+                        beijing_time = (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
+                        new_item = {"name": new_name, "desc": new_desc, "url": new_url, "time": beijing_time}
+                        st.session_state.resources.insert(0, new_item)
+                        success = save_data_to_github(st.session_state.resources, st.session_state.file_sha)
+                        if success:
+                            st.success(f"资源【{new_name}】发布成功！")
+                            res_data, file_sha = get_data_from_github()
+                            st.session_state.resources = res_data
+                            st.session_state.file_sha = file_sha
+                            st.session_state.current_page = 1
+                        else:
+                            st.error("发布失败，请检查配置。")
+                            st.session_state.resources.pop(0)
+
+    # --- Tab 2: 智能批量解析 ---
+    with tab2:
+        st.info("💡 提示：请直接粘贴包含【一个链接】和【多个带有换行的书名/资源名】的文本段落。系统会自动去除序号并匹配链接。")
+        with st.form("batch_resource_form", clear_on_submit=True):
+            batch_text = st.text_area("在此粘贴文本块（高度自适应）", height=300, placeholder="链接：https://pan.baidu.com/...\n\n1.第一本书\n2.第二本书")
+            batch_desc = st.text_input("批量附加描述（选填，比如：小说合集，会添加到所有条目下）")
+            admin_pwd_batch = st.text_input("管理员密码 (必填)*", type="password")
+            
+            submitted_batch = st.form_submit_button("🚀 一键解析并批量发布")
+            
+            if submitted_batch:
+                if admin_pwd_batch != ADMIN_PASSWORD:
+                    st.error("管理员密码错误！")
+                elif not batch_text.strip():
+                    st.warning("内容不能为空！")
+                else:
+                    # 1. 尝试使用正则提取 URL
+                    url_match = re.search(r'(https?://[^\s]+)', batch_text)
+                    if not url_match:
+                        st.error("❌ 无法在文本中找到有效的网页链接 (http/https开头)！")
                     else:
-                        st.error("发布失败，请检查网络或 GitHub 配置。")
-                        st.session_state.resources.pop(0)
+                        base_url = url_match.group(1)
+                        lines = batch_text.strip().split('\n')
+                        new_items_to_add = []
+                        beijing_time = (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
+                        
+                        # 2. 逐行解析文本
+                        for line in lines:
+                            line = line.strip()
+                            # 过滤掉空行、含有http的行、含有"链接："等说明性质的行
+                            if not line or "http" in line or line.startswith("链接") or line.startswith("提取码"):
+                                continue
+                            
+                            # 使用正则去除前缀数字和点，比如 "1." "20. " "3、"
+                            clean_name = re.sub(r'^\d+[\.、\s]*', '', line)
+                            
+                            if clean_name:
+                                new_items_to_add.append({
+                                    "name": clean_name,
+                                    "desc": batch_desc if batch_desc else "",
+                                    "url": base_url, # 所有解析出来的资源共享这一个链接
+                                    "time": beijing_time
+                                })
+                        
+                        if not new_items_to_add:
+                            st.warning("⚠️ 找到了链接，但没有解析到有效的资源名称。")
+                        else:
+                            with st.spinner(f"正在批量写入 {len(new_items_to_add)} 条数据至 GitHub..."):
+                                # 倒序插入，确保第1条在网页最上面
+                                for item in reversed(new_items_to_add):
+                                    st.session_state.resources.insert(0, item)
+                                
+                                success = save_data_to_github(st.session_state.resources, st.session_state.file_sha)
+                                if success:
+                                    st.success(f"🎉 成功批量解析并发布了 {len(new_items_to_add)} 条资源！")
+                                    # 刷新数据
+                                    res_data, file_sha = get_data_from_github()
+                                    st.session_state.resources = res_data
+                                    st.session_state.file_sha = file_sha
+                                    st.session_state.current_page = 1
+                                else:
+                                    st.error("发布失败，请检查网络或 GitHub 配置。")
+                                    # 失败的话把刚刚加进去的数据撤销掉
+                                    for _ in range(len(new_items_to_add)):
+                                        st.session_state.resources.pop(0)
