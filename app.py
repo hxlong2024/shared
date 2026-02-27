@@ -7,25 +7,25 @@ import re
 from datetime import datetime, timedelta
 
 # 配置页面布局
-st.set_page_config(page_title="启明星 | 资源库", page_icon="📦", layout="centered")
+st.set_page_config(page_title="万物归藏 | 资源库", page_icon="📦", layout="centered")
 
 # ==========================================
-# 核心美化：精准隐藏右上角，极致紧凑风格
+# 核心美化：核弹级清除右上角牛皮癣
 # ==========================================
 custom_css = """
 <style>
-/* 🎯 核心修复：精准隐藏右上角的所有图标容器，但不隐藏整个 header（保留侧边栏按钮） */
-[data-testid="stHeaderActionElements"] {
-    display: none !important;
-}
-#MainMenu {
-    display: none !important;
-}
-.stDeployButton {
-    display: none !important;
-}
-footer {
-    display: none !important;
+/* 🎯 终极清除术：暴力覆盖 Streamlit 最新版本的所有右上角容器 */
+[data-testid="stToolbar"] {display: none !important;}
+[data-testid="stHeaderActionElements"] {display: none !important;}
+.stAppToolbar {display: none !important;}
+#MainMenu {display: none !important;}
+.stDeployButton {display: none !important;}
+header .stActionButton {display: none !important;}
+footer {display: none !important;}
+
+/* 顶部间距微调，让排版更紧凑 */
+.block-container {
+    padding-top: 2rem !important;
 }
 
 /* 全局背景色调 */
