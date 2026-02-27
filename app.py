@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import requests
 import base64
 import json
@@ -11,64 +10,70 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="万物归藏 | 资源库", page_icon="📦", layout="centered")
 
 # ==========================================
-# 优化 1：保留侧边栏按钮，隐藏多余菜单
+# 核心美化：极致紧凑、极简风格 CSS
 # ==========================================
-hide_st_style = """
+custom_css = """
 <style>
 #MainMenu {visibility: hidden;}
+header {visibility: hidden;}
 footer {visibility: hidden;}
 .stDeployButton {display: none;}
-.block-container {
-    padding-top: 2rem;
-    padding-bottom: 2rem;
+.stApp { background-color: #f8fafc; }
+
+.stTextInput input {
+    border-radius: 12px !important;
+    border: 1px solid #e2e8f0 !important;
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
+    transition: all 0.2s ease !important;
+}
+.stTextInput input:focus {
+    border-color: #64748b !important;
+    box-shadow: 0 0 0 1px #64748b !important;
+}
+
+[data-testid="stVerticalBlockBorderWrapper"] {
+    background-color: #ffffff;
+    border-radius: 8px !important;
+    border: 1px solid #e2e8f0 !important;
+    padding: 2px 8px !important; 
+    margin-bottom: -8px !important; 
+    transition: background-color 0.2s !important;
+}
+[data-testid="stVerticalBlockBorderWrapper"]:hover {
+    background-color: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+}
+
+.stLinkButton a {
+    border-radius: 6px !important;
+    background-color: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px solid #e2e8f0 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    height: 32px !important;
+    padding: 0 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s !important;
+}
+.stLinkButton a:hover {
+    background-color: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+.stButton button {
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    padding: 4px 8px !important;
+    border: 1px solid #e2e8f0 !important;
 }
 </style>
 """
-st.markdown(hide_st_style, unsafe_allow_html=True)
-
-# ==========================================
-# 优化 2：自定义真实的“一键复制”按钮组件
-# ==========================================
-def get_copy_button(url):
-    safe_url = url.replace("'", "\\'")
-    html_code = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <style>
-    body {{ margin: 0; padding: 0; background-color: transparent; }}
-    .copy-btn {{
-        width: 100%; height: 40px;
-        background-color: #ffffff; color: #31333f;
-        border: 1px solid rgba(49, 51, 63, 0.2); border-radius: 8px;
-        cursor: pointer; font-size: 14px; font-weight: 400;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-        transition: border-color 0.2s, color 0.2s; box-sizing: border-box;
-    }}
-    .copy-btn:active {{ background-color: #ff4b4b; color: white; border-color: #ff4b4b; }}
-    @media (prefers-color-scheme: dark) {{
-        .copy-btn {{ background-color: transparent; color: #fafafa; border-color: rgba(250, 250, 250, 0.2); }}
-    }}
-    </style>
-    </head>
-    <body>
-        <button class="copy-btn" onclick="copyToClipboard('{safe_url}', this)">🔗 复制链接</button>
-        <script>
-        function copyToClipboard(text, btn) {{
-            navigator.clipboard.writeText(text).then(function() {{
-                btn.innerText = '✅ 复制成功';
-                btn.style.borderColor = '#00cc66'; btn.style.color = '#00cc66';
-                setTimeout(() => {{ 
-                    btn.innerText = '🔗 复制链接'; 
-                    btn.style.borderColor = ''; btn.style.color = '';
-                }}, 2000);
-            }});
-        }}
-        </script>
-    </body>
-    </html>
-    """
-    components.html(html_code, height=40)
+st.markdown(custom_css, unsafe_allow_html=True)
 
 # --- 从 Streamlit Secrets 读取 GitHub 配置 ---
 try:
@@ -78,8 +83,8 @@ try:
     ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
     FILE_PATH = "resources.json"
     BRANCH = "main"
-except KeyError as e:
-    st.error(f"🚨 缺少必要的密钥配置：{e}！请检查 .streamlit/secrets.toml 文件。")
+except KeyError:
+    st.error("🚨 缺少必要的密钥配置！请检查 .streamlit/secrets.toml 文件。")
     st.stop()
 
 # --- GitHub API 数据读写函数 ---
@@ -93,7 +98,7 @@ def get_data_from_github():
     elif response.status_code == 404:
         return [], None
     else:
-        st.error(f"读取数据失败: {response.status_code}")
+        st.error("网络请求出错，请重试。")
         return [], None
 
 def save_data_to_github(new_data, sha):
@@ -104,33 +109,32 @@ def save_data_to_github(new_data, sha):
     if sha: payload["sha"] = sha
     return requests.put(url, headers=headers, json=payload).status_code in [200, 201]
 
-# --- 初始化数据与分页状态 ---
+# --- 初始化数据 ---
 if 'resources' not in st.session_state:
-    with st.spinner("正在加载 万物归藏 资源库..."):
+    with st.spinner("正在加载 万物归藏 ..."):
         res_data, file_sha = get_data_from_github()
         st.session_state.resources = res_data
         st.session_state.file_sha = file_sha
 
-if 'current_page' not in st.session_state:
-    st.session_state.current_page = 1
-if 'last_search' not in st.session_state:
-    st.session_state.last_search = ""
+if 'current_page' not in st.session_state: st.session_state.current_page = 1
+if 'last_search' not in st.session_state: st.session_state.last_search = ""
 
 # --- 侧边栏导航 ---
-st.sidebar.title("万物归藏 导航")
-page = st.sidebar.radio("选择操作", ["🌐 资源列表", "⚙️ 录入资源"])
+st.sidebar.title("万物归藏")
+page = st.sidebar.radio("选择面板", ["🌐 探索资源", "⚙️ 后台录入"])
 
-# --- 页面 1: 前端列表展示 (带分页功能) ---
-if page == "🌐 资源列表":
+# --- 页面 1: 前端列表展示 ---
+if page == "🌐 探索资源":
     st.title("📦 万物归藏")
+    st.markdown("<p style='color: #64748b; margin-top: -15px; margin-bottom: 20px; font-size: 14px;'>极简、高效的资源收录网络</p>", unsafe_allow_html=True)
     
-    search_col1, search_col2 = st.columns([4, 1], vertical_alignment="bottom")
+    search_col1, search_col2 = st.columns([5, 1], vertical_alignment="center")
     with search_col1:
-        search_query = st.text_input("🔍 搜索资源名称或描述...", "")
+        search_query = st.text_input("搜索框", label_visibility="collapsed", placeholder="输入书名、工具或关键词检索...")
     with search_col2:
-        st.button("搜索", use_container_width=True)
+        st.button("检索", use_container_width=True)
         
-    st.write("---") 
+    st.write("") 
     
     if search_query != st.session_state.last_search:
         st.session_state.current_page = 1
@@ -142,146 +146,159 @@ if page == "🌐 资源列表":
     ]
     
     if not filtered_data:
-        st.info("当前没有资源，或者没有搜索到匹配的内容。")
+        st.info("💡 当前没有资源，或者没有搜索到匹配的内容。")
     else:
-        PAGE_SIZE = 10
+        PAGE_SIZE = 15
         total_items = len(filtered_data)
         total_pages = math.ceil(total_items / PAGE_SIZE)
         
-        if st.session_state.current_page > total_pages:
-            st.session_state.current_page = total_pages
-            
+        if st.session_state.current_page > total_pages: st.session_state.current_page = total_pages
         start_idx = (st.session_state.current_page - 1) * PAGE_SIZE
         end_idx = start_idx + PAGE_SIZE
         paginated_data = filtered_data[start_idx:end_idx]
         
         for item in paginated_data:
             with st.container(border=True):
-                st.subheader(item['name'])
-                if item.get('time'):
-                    st.caption(f"🕒 发布时间: {item['time']}")
-                if item.get('desc'):
-                    st.write(item['desc'])
-                
-                btn_col1, btn_col2 = st.columns(2)
-                with btn_col1:
-                    st.link_button("🌐 打开链接", item['url'], use_container_width=True)
-                with btn_col2:
-                    get_copy_button(item['url'])
+                col_left, col_right = st.columns([5, 1], vertical_alignment="center")
+                with col_left:
+                    header_html = f"<span style='font-size: 15px; font-weight: 600; color: #1e293b; margin-right: 10px;'>{item['name']}</span>"
+                    if item.get('time'): header_html += f"<span style='color: #94a3b8; font-size: 12px; font-family: monospace;'>{item['time'][:10]}</span>" 
+                    st.markdown(header_html, unsafe_allow_html=True)
+                    if item.get('desc'):
+                        st.markdown(f"<div style='color: #64748b; font-size: 13px; margin-top: 2px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;'>{item['desc']}</div>", unsafe_allow_html=True)
+                with col_right:
+                    st.link_button("打开", item['url'], use_container_width=True)
         
         if total_pages > 1:
-            st.write("") 
+            st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True) 
             page_col1, page_col2, page_col3 = st.columns([1, 2, 1], vertical_alignment="center")
             with page_col1:
-                if st.button("⬅️ 上一页", disabled=(st.session_state.current_page == 1), use_container_width=True):
-                    st.session_state.current_page -= 1
-                    st.rerun()
+                if st.button("上一页", disabled=(st.session_state.current_page == 1), use_container_width=True):
+                    st.session_state.current_page -= 1; st.rerun()
             with page_col2:
-                st.markdown(f"<div style='text-align: center; color: #666;'>第 {st.session_state.current_page} / {total_pages} 页 (共 {total_items} 条)</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align: center; color: #94a3b8; font-size: 13px;'>{st.session_state.current_page} / {total_pages} &nbsp;|&nbsp; 共 {total_items} 条</div>", unsafe_allow_html=True)
             with page_col3:
-                if st.button("下一页 ➡️", disabled=(st.session_state.current_page == total_pages), use_container_width=True):
-                    st.session_state.current_page += 1
-                    st.rerun()
+                if st.button("下一页", disabled=(st.session_state.current_page == total_pages), use_container_width=True):
+                    st.session_state.current_page += 1; st.rerun()
 
 # --- 页面 2: 后台管理页面 ---
-elif page == "⚙️ 录入资源":
-    st.title("⚙️ 新增资源")
+elif page == "⚙️ 后台录入":
+    st.title("⚙️ 资源控制台")
+    tab1, tab2 = st.tabs(["📝 单条手工录入", "🚀 终极缓冲池引擎"])
     
-    # 【核心新增】使用 Tabs 将单条录入和批量录入分开
-    tab1, tab2 = st.tabs(["📝 单条手工录入", "🚀 智能批量解析"])
-    
-    # --- Tab 1: 单条录入 ---
     with tab1:
         with st.form("add_resource_form", clear_on_submit=True):
             new_name = st.text_input("资源名称 (必填)*")
             new_desc = st.text_area("资源描述 (选填)")
             new_url = st.text_input("资源链接 (必填)*")
             admin_pwd = st.text_input("管理员密码 (必填)*", type="password")
-            submitted = st.form_submit_button("保存并发布")
-            
-            if submitted:
-                if admin_pwd != ADMIN_PASSWORD:
-                    st.error("管理员密码错误！")
-                elif not new_name or not new_url:
-                    st.warning("请填写完整的资源名称和链接！")
+            if st.form_submit_button("保存并发布"):
+                if admin_pwd != ADMIN_PASSWORD: st.error("密码错误！")
+                elif not new_name or not new_url: st.warning("请填写完整！")
                 else:
-                    with st.spinner("正在同步至数据库..."):
+                    with st.spinner("正在同步..."):
                         beijing_time = (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
-                        new_item = {"name": new_name, "desc": new_desc, "url": new_url, "time": beijing_time}
-                        st.session_state.resources.insert(0, new_item)
-                        success = save_data_to_github(st.session_state.resources, st.session_state.file_sha)
-                        if success:
-                            st.success(f"资源【{new_name}】发布成功！")
+                        st.session_state.resources.insert(0, {"name": new_name, "desc": new_desc, "url": new_url, "time": beijing_time})
+                        if save_data_to_github(st.session_state.resources, st.session_state.file_sha):
+                            st.success(f"发布成功！")
                             res_data, file_sha = get_data_from_github()
-                            st.session_state.resources = res_data
-                            st.session_state.file_sha = file_sha
+                            st.session_state.resources, st.session_state.file_sha = res_data, file_sha
                             st.session_state.current_page = 1
                         else:
                             st.error("发布失败，请检查配置。")
                             st.session_state.resources.pop(0)
 
-    # --- Tab 2: 智能批量解析 ---
     with tab2:
-        st.info("💡 提示：请直接粘贴包含【一个链接】和【多个带有换行的书名/资源名】的文本段落。系统会自动去除序号并匹配链接。")
+        st.info("💡 完全采用缓冲池状态机逻辑：遇文本进池，遇链接收网。空行作为组别断路器防止误绑。")
         with st.form("batch_resource_form", clear_on_submit=True):
-            batch_text = st.text_area("在此粘贴文本块（高度自适应）", height=300, placeholder="链接：https://pan.baidu.com/...\n\n1.第一本书\n2.第二本书")
-            batch_desc = st.text_input("批量附加描述（选填，比如：小说合集，会添加到所有条目下）")
+            batch_text = st.text_area("在此粘贴野生文本", height=350)
+            batch_desc = st.text_input("批量附加描述（选填）")
             admin_pwd_batch = st.text_input("管理员密码 (必填)*", type="password")
             
-            submitted_batch = st.form_submit_button("🚀 一键解析并批量发布")
-            
-            if submitted_batch:
+            if st.form_submit_button("🚀 启动缓冲池入库"):
                 if admin_pwd_batch != ADMIN_PASSWORD:
-                    st.error("管理员密码错误！")
+                    st.error("密码错误！")
                 elif not batch_text.strip():
                     st.warning("内容不能为空！")
                 else:
-                    # 1. 尝试使用正则提取 URL
-                    url_match = re.search(r'(https?://[^\s]+)', batch_text)
-                    if not url_match:
-                        st.error("❌ 无法在文本中找到有效的网页链接 (http/https开头)！")
-                    else:
-                        base_url = url_match.group(1)
-                        lines = batch_text.strip().split('\n')
-                        new_items_to_add = []
-                        beijing_time = (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
+                    lines = batch_text.strip().split('\n')
+                    new_items_to_add = []
+                    beijing_time = (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
+                    
+                    # 核心逻辑：动态缓冲池与失忆开关
+                    text_pool = []
+                    current_url = None
+                    
+                    for line in lines:
+                        original_line = line.strip()
                         
-                        # 2. 逐行解析文本
-                        for line in lines:
-                            line = line.strip()
-                            # 过滤掉空行、含有http的行、含有"链接："等说明性质的行
-                            if not line or "http" in line or line.startswith("链接") or line.startswith("提取码"):
-                                continue
+                        # 【规则 1】：遇到空行，断开当前链接的上下文记忆（失忆开关）
+                        if not original_line:
+                            current_url = None
+                            continue
                             
-                            # 使用正则去除前缀数字和点，比如 "1." "20. " "3、"
-                            clean_name = re.sub(r'^\d+[\.、\s]*', '', line)
-                            
-                            if clean_name:
-                                new_items_to_add.append({
-                                    "name": clean_name,
-                                    "desc": batch_desc if batch_desc else "",
-                                    "url": base_url, # 所有解析出来的资源共享这一个链接
-                                    "time": beijing_time
-                                })
+                        # 【规则 2】：查找当前行是否有链接
+                        url_match = re.search(r'(https?://[^\s]+)', original_line)
                         
-                        if not new_items_to_add:
-                            st.warning("⚠️ 找到了链接，但没有解析到有效的资源名称。")
-                        else:
-                            with st.spinner(f"正在批量写入 {len(new_items_to_add)} 条数据至 GitHub..."):
-                                # 倒序插入，确保第1条在网页最上面
-                                for item in reversed(new_items_to_add):
-                                    st.session_state.resources.insert(0, item)
+                        if url_match:
+                            found_url = url_match.group(1)
+                            
+                            # 遇到链接，立刻把池子里的书全绑走，然后清空池子！
+                            if text_pool:
+                                for name in text_pool:
+                                    new_items_to_add.append({"name": name, "desc": batch_desc, "url": found_url, "time": beijing_time})
+                                text_pool = []
                                 
-                                success = save_data_to_github(st.session_state.resources, st.session_state.file_sha)
-                                if success:
-                                    st.success(f"🎉 成功批量解析并发布了 {len(new_items_to_add)} 条资源！")
-                                    # 刷新数据
-                                    res_data, file_sha = get_data_from_github()
-                                    st.session_state.resources = res_data
-                                    st.session_state.file_sha = file_sha
-                                    st.session_state.current_page = 1
-                                else:
-                                    st.error("发布失败，请检查网络或 GitHub 配置。")
-                                    # 失败的话把刚刚加进去的数据撤销掉
-                                    for _ in range(len(new_items_to_add)):
-                                        st.session_state.resources.pop(0)
+                            # 把这个链接记在脑子里，变成“当前链接”
+                            current_url = found_url
+                            
+                            # 把链接抠掉，看看这行是不是还有字（比如：链接:xxx 书名）
+                            clean_line = re.sub(r'https?://[^\s]+', '', original_line)
+                            clean_line = re.sub(r'(链接|提取码|密码)[:：\s]*[a-zA-Z0-9]*', '', clean_line).strip()
+                            if clean_line:
+                                clean_name = re.sub(r'^[\d\.、\s❤️🎧📁🔥]+', '', clean_line).strip()
+                                clean_name = re.sub(r'^链接[:：]\s*', '', clean_name)
+                                if "《" in clean_name and "》" in clean_name: clean_name = clean_name[clean_name.find("《"):]
+                                else: clean_name = re.sub(r'^[【\[].*?[】\]]', '', clean_name).strip()
+                                
+                                if clean_name and clean_name not in ['言情', '耽美', '国漫', '酸涩文+失忆梗'] and "转存失败" not in clean_name:
+                                    new_items_to_add.append({"name": clean_name, "desc": batch_desc, "url": current_url, "time": beijing_time})
+                        
+                        else:
+                            # 【规则 3】：遇到纯文本
+                            clean_name = re.sub(r'^[\d\.、\s❤️🎧📁🔥]+', '', original_line).strip()
+                            clean_name = re.sub(r'^链接[:：]\s*', '', clean_name)
+                            
+                            # 净化书名
+                            if "《" in clean_name and "》" in clean_name:
+                                clean_name = clean_name[clean_name.find("《"):]
+                            else:
+                                clean_name = re.sub(r'^[【\[].*?[】\]]', '', clean_name).strip()
+                                
+                            # 过滤无用废话
+                            if not clean_name or clean_name in ['言情', '耽美', '国漫', '酸涩文+失忆梗'] or "转存失败" in clean_name:
+                                continue
+                                
+                            # 分配逻辑
+                            if current_url:
+                                # 脑子里有链接（链接在上），直接绑定
+                                new_items_to_add.append({"name": clean_name, "desc": batch_desc, "url": current_url, "time": beijing_time})
+                            else:
+                                # 脑子里没链接（链接在下），扔进池子等收网
+                                text_pool.append(clean_name)
+                                
+                    if not new_items_to_add:
+                        st.error("❌ 解析失败：没有找到合规的书单与链接匹配。")
+                    else:
+                        with st.spinner(f"正在写入 {len(new_items_to_add)} 条数据..."):
+                            for item in reversed(new_items_to_add):
+                                st.session_state.resources.insert(0, item)
+                                
+                            if save_data_to_github(st.session_state.resources, st.session_state.file_sha):
+                                st.success(f"🎉 成功解析并发布了 {len(new_items_to_add)} 条资源！")
+                                res_data, file_sha = get_data_from_github()
+                                st.session_state.resources, st.session_state.file_sha = res_data, file_sha
+                                st.session_state.current_page = 1
+                            else:
+                                st.error("发布失败。")
+                                for _ in range(len(new_items_to_add)): st.session_state.resources.pop(0)
