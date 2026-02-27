@@ -16,30 +16,30 @@ st.set_page_config(page_title="万物归藏 | 资源库", page_icon="📦", layo
 # ==========================================
 custom_css = """
 <style>
-/* 🎯 1. 精准狙击右上角菜单和 Deploy 按钮 */
+/* 🎯 1. 采用你提供的完美思路：用 visibility: hidden 让图标隐身，骗过底层重绘 */
 #MainMenu { visibility: hidden !important; }
-.stDeployButton { display: none !important; }
-[data-testid="stHeaderActionElements"] { display: none !important; }
+.stDeployButton { visibility: hidden !important; }
+[data-testid="stHeaderActionElements"] { visibility: hidden !important; }
+footer { visibility: hidden !important; }
 
-/* 🎯 2. 隐藏底部 Streamlit 水印 */
-footer { display: none !important; }
-
-/* 🎯 3. 【核心借鉴】保留 Header 结构但使其透明，完美保留原装侧边栏按钮 */
+/* 🎯 2. Header 区域保留，只做全透明处理，原装侧边栏按钮自然保留且可点击 */
 header[data-testid="stHeader"] {
-    background-color: transparent !important;
-    z-index: 1 !important; 
+    background-color: rgba(0,0,0,0) !important;
+    z-index: 1 !important;
 }
 
-/* 🎯 4. 彻底隐藏右下角的 Manage App 悬浮按钮 */
+/* 🎯 3. 彻底隐藏右下角的 Manage App 悬浮狗皮膏药 */
 .viewerBadge_container, 
 .viewerBadge_link, 
-[data-testid="viewerBadge"] { 
-    display: none !important; 
+[data-testid="viewerBadge"],
+[data-testid="manage-app-button"] { 
+    visibility: hidden !important; 
+    display: none !important;
 }
 
 /* --- 调整主页面间距 --- */
 .block-container {
-    padding-top: 2rem !important;
+    padding-top: 1.5rem !important;
     padding-bottom: 1rem !important;
 }
 
