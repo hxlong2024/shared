@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 # ==========================================
 # 🛑 核弹级界面清爽术：必须放在代码最顶部 🛑
 # ==========================================
-st.set_page_config(page_title="启明星 | 资源库", page_icon="📦", layout="centered")
+st.set_page_config(page_title="万物归藏 | 资源库", page_icon="📦", layout="centered")
 
 # 定义终极 CSS
 obliterate_ui_css = """
@@ -29,13 +29,18 @@ footer {
 /* 🎯 3. 【核心修复】将左上角的侧边栏呼出按钮重新设为可见 */
 header[data-testid="stHeader"] button[data-testid="stSidebarCollapseButton"] {
     visibility: visible !important;
-    color: #475569 !important; /* 设置按钮颜色，防止它隐形 */
+    color: #475569 !important;
     background-color: rgba(255,255,255,0.8) !important;
     border-radius: 8px !important;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
 }
 
-/* 调整主页面间距，因为顶部 header 隐形了 */
+/* 🎯 4. 【云端绝杀】彻底隐藏右下角的 Manage App 悬浮按钮 */
+.viewerBadge_container { display: none !important; }
+.viewerBadge_link { display: none !important; }
+[data-testid="viewerBadge"] { display: none !important; }
+
+/* 调整主页面间距 */
 .block-container {
     padding-top: 3rem !important;
     padding-bottom: 1rem !important;
@@ -144,11 +149,11 @@ if 'resources' not in st.session_state:
 if 'current_page' not in st.session_state: st.session_state.current_page = 1
 if 'last_search' not in st.session_state: st.session_state.last_search = ""
 
-st.sidebar.title("启明星")
+st.sidebar.title("万物归藏")
 page = st.sidebar.radio("选择面板", ["🌐 探索资源", "⚙️ 后台录入"])
 
 if page == "🌐 探索资源":
-    st.title("📦 启明星")
+    st.title("📦 万物归藏")
     st.markdown("<p style='color: #64748b; margin-top: -15px; margin-bottom: 20px; font-size: 14px;'>极简、高效的资源收录网络</p>", unsafe_allow_html=True)
     
     search_col1, search_col2 = st.columns([5, 1], vertical_alignment="center")
