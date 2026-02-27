@@ -12,46 +12,34 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="万物归藏 | 资源库", page_icon="📦", layout="centered")
 
 # ==========================================
-# 🚀 真正的“狙击级” CSS 抹杀代码
+# 🎨 核心美化：吸取优秀代码思路的终极 CSS
 # ==========================================
 custom_css = """
 <style>
-/* 🎯 1. 狙击右上角：精准摧毁 Streamlit 最新版的工具栏容器 */
-.stAppToolbar, 
-[data-testid="stToolbar"], 
-[data-testid="stHeaderActionElements"] {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
+/* 🎯 1. 采用你提供的完美思路：用 visibility: hidden 让图标隐身，骗过底层重绘 */
+#MainMenu { visibility: hidden !important; }
+.stDeployButton { visibility: hidden !important; }
+[data-testid="stHeaderActionElements"] { visibility: hidden !important; }
+footer { visibility: hidden !important; }
 
-/* 🎯 2. 保护左上角：让头部背景彻底透明，消除白边，侧边栏按钮原样保留 */
+/* 🎯 2. Header 区域保留，只做全透明处理，原装侧边栏按钮自然保留且可点击 */
 header[data-testid="stHeader"] {
-    background: transparent !important;
-    box-shadow: none !important;
+    background-color: rgba(0,0,0,0) !important;
+    z-index: 1 !important;
 }
 
-/* 🎯 3. 狙击右下角：强行抹杀 Streamlit Cloud 悬浮窗 (Manage app) */
+/* 🎯 3. 彻底隐藏右下角的 Manage App 悬浮狗皮膏药 */
 .viewerBadge_container, 
 .viewerBadge_link, 
 [data-testid="viewerBadge"],
-#manage-app-button {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    z-index: -9999 !important;
-    pointer-events: none !important;
-}
-
-/* 🎯 4. 狙击底部：消灭 Footer 水印 */
-footer {
+[data-testid="manage-app-button"] { 
+    visibility: hidden !important; 
     display: none !important;
 }
 
-/* --- 页面排版紧凑化 --- */
+/* --- 调整主页面间距 --- */
 .block-container {
-    padding-top: 2rem !important;
+    padding-top: 1.5rem !important;
     padding-bottom: 1rem !important;
 }
 
@@ -228,7 +216,7 @@ if page == "🌐 探索资源":
 # --- 页面 2: 后台管理页面 ---
 elif page == "⚙️ 后台录入":
     st.title("⚙️ 资源控制台")
-    tab1, tab2 = st.tabs(["📝 单条手工录入", "🚀 动态缓冲池引擎"])
+    tab1, tab2 = st.tabs(["📝 单条手工录入", "🚀 终极缓冲池引擎"])
     
     with tab1:
         with st.form("add_resource_form", clear_on_submit=True):
