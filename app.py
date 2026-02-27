@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 # ==========================================
 # 🛑 页面基础配置 🛑
 # ==========================================
-st.set_page_config(page_title="万物归藏 | 资源库", page_icon="📦", layout="centered")
+st.set_page_config(page_title="启明星 | 资源库", page_icon="📦", layout="centered")
 
 # ==========================================
 # 🎨 核心美化：吸取优秀代码思路的终极 CSS
@@ -143,7 +143,7 @@ def save_data_to_github(new_data, sha):
 
 # --- 初始化数据 ---
 if 'resources' not in st.session_state:
-    with st.spinner("正在加载 万物归藏 ..."):
+    with st.spinner("正在加载 启明星 ..."):
         res_data, file_sha = get_data_from_github()
         st.session_state.resources = res_data
         st.session_state.file_sha = file_sha
@@ -152,12 +152,12 @@ if 'current_page' not in st.session_state: st.session_state.current_page = 1
 if 'last_search' not in st.session_state: st.session_state.last_search = ""
 
 # --- 侧边栏导航 ---
-st.sidebar.title("万物归藏")
+st.sidebar.title("启明星")
 page = st.sidebar.radio("选择面板", ["🌐 探索资源", "⚙️ 后台录入"])
 
 # --- 页面 1: 前端列表展示 ---
 if page == "🌐 探索资源":
-    st.title("📦 万物归藏")
+    st.title("📦 启明星")
     st.markdown("<p style='color: #64748b; margin-top: -15px; margin-bottom: 20px; font-size: 14px;'>极简、高效的资源收录网络</p>", unsafe_allow_html=True)
     
     search_col1, search_col2 = st.columns([5, 1], vertical_alignment="center")
