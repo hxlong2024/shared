@@ -6,29 +6,46 @@ import math
 import re
 from datetime import datetime, timedelta
 
-# 配置页面布局
+# ==========================================
+# 🛑 页面基础配置 🛑
+# ==========================================
 st.set_page_config(page_title="万物归藏 | 资源库", page_icon="📦", layout="centered")
 
 # ==========================================
-# 核心美化：精准隐藏右上角，极致紧凑风格
+# 🎨 核心美化：吸取优秀代码思路的终极 CSS
 # ==========================================
 custom_css = """
 <style>
-/* 🎯 核心修复：精准隐藏右上角的所有图标容器，但不隐藏整个 header（保留侧边栏按钮） */
-[data-testid="stHeaderActionElements"] {
-    display: none !important;
+/* 🎯 1. 采用你提供的完美思路：用 visibility: hidden 让图标隐身，骗过底层重绘 */
+#MainMenu { visibility: hidden !important; }
+.stDeployButton { visibility: hidden !important; }
+[data-testid="stHeaderActionElements"] { visibility: hidden !important; }
+footer { visibility: hidden !important; }
+
+/* 🎯 2. Header 区域保留，只做全透明处理，原装侧边栏按钮自然保留且可点击 */
+header[data-testid="stHeader"] {
+    background-color: rgba(0,0,0,0) !important;
+    z-index: 1 !important;
 }
-#MainMenu {
-    display: none !important;
-}
-.stDeployButton {
-    display: none !important;
-}
-footer {
+
+/* 🎯 3. 彻底隐藏右下角的 Manage App 悬浮狗皮膏药 */
+.viewerBadge_container, 
+.viewerBadge_link, 
+[data-testid="viewerBadge"],
+[data-testid="manage-app-button"] { 
+    visibility: hidden !important; 
     display: none !important;
 }
 
-/* 全局背景色调 */
+/* --- 调整主页面间距 --- */
+.block-container {
+    padding-top: 1.5rem !important;
+    padding-bottom: 1rem !important;
+}
+
+/* ==========================================
+   极简数据台自定义样式
+   ========================================== */
 .stApp { background-color: #f8fafc; }
 
 /* 搜索框紧凑化 */
