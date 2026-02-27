@@ -10,16 +10,28 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="万物归藏 | 资源库", page_icon="📦", layout="centered")
 
 # ==========================================
-# 核心美化：极致紧凑、极简风格 CSS
+# 核心美化：精准隐藏右上角，极致紧凑风格
 # ==========================================
 custom_css = """
 <style>
-#MainMenu {visibility: hidden;}
-header {visibility: hidden;}
-footer {visibility: hidden;}
-.stDeployButton {display: none;}
+/* 🎯 核心修复：精准隐藏右上角的所有图标容器，但不隐藏整个 header（保留侧边栏按钮） */
+[data-testid="stHeaderActionElements"] {
+    display: none !important;
+}
+#MainMenu {
+    display: none !important;
+}
+.stDeployButton {
+    display: none !important;
+}
+footer {
+    display: none !important;
+}
+
+/* 全局背景色调 */
 .stApp { background-color: #f8fafc; }
 
+/* 搜索框紧凑化 */
 .stTextInput input {
     border-radius: 12px !important;
     border: 1px solid #e2e8f0 !important;
@@ -33,6 +45,7 @@ footer {visibility: hidden;}
     box-shadow: 0 0 0 1px #64748b !important;
 }
 
+/* 卡片极简美化 */
 [data-testid="stVerticalBlockBorderWrapper"] {
     background-color: #ffffff;
     border-radius: 8px !important;
@@ -46,6 +59,7 @@ footer {visibility: hidden;}
     border-color: #cbd5e1 !important;
 }
 
+/* 打开链接按钮 */
 .stLinkButton a {
     border-radius: 6px !important;
     background-color: #f1f5f9 !important;
@@ -65,6 +79,7 @@ footer {visibility: hidden;}
     color: #0f172a !important;
 }
 
+/* 分页按钮 */
 .stButton button {
     border-radius: 8px !important;
     font-size: 13px !important;
@@ -225,34 +240,28 @@ elif page == "⚙️ 后台录入":
                     new_items_to_add = []
                     beijing_time = (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
                     
-                    # 核心逻辑：动态缓冲池与失忆开关
                     text_pool = []
                     current_url = None
                     
                     for line in lines:
                         original_line = line.strip()
                         
-                        # 【规则 1】：遇到空行，断开当前链接的上下文记忆（失忆开关）
                         if not original_line:
                             current_url = None
                             continue
                             
-                        # 【规则 2】：查找当前行是否有链接
                         url_match = re.search(r'(https?://[^\s]+)', original_line)
                         
                         if url_match:
                             found_url = url_match.group(1)
                             
-                            # 遇到链接，立刻把池子里的书全绑走，然后清空池子！
                             if text_pool:
                                 for name in text_pool:
                                     new_items_to_add.append({"name": name, "desc": batch_desc, "url": found_url, "time": beijing_time})
                                 text_pool = []
                                 
-                            # 把这个链接记在脑子里，变成“当前链接”
                             current_url = found_url
                             
-                            # 把链接抠掉，看看这行是不是还有字（比如：链接:xxx 书名）
                             clean_line = re.sub(r'https?://[^\s]+', '', original_line)
                             clean_line = re.sub(r'(链接|提取码|密码)[:：\s]*[a-zA-Z0-9]*', '', clean_line).strip()
                             if clean_line:
@@ -265,26 +274,20 @@ elif page == "⚙️ 后台录入":
                                     new_items_to_add.append({"name": clean_name, "desc": batch_desc, "url": current_url, "time": beijing_time})
                         
                         else:
-                            # 【规则 3】：遇到纯文本
                             clean_name = re.sub(r'^[\d\.、\s❤️🎧📁🔥]+', '', original_line).strip()
                             clean_name = re.sub(r'^链接[:：]\s*', '', clean_name)
                             
-                            # 净化书名
                             if "《" in clean_name and "》" in clean_name:
                                 clean_name = clean_name[clean_name.find("《"):]
                             else:
                                 clean_name = re.sub(r'^[【\[].*?[】\]]', '', clean_name).strip()
                                 
-                            # 过滤无用废话
                             if not clean_name or clean_name in ['言情', '耽美', '国漫', '酸涩文+失忆梗'] or "转存失败" in clean_name:
                                 continue
                                 
-                            # 分配逻辑
                             if current_url:
-                                # 脑子里有链接（链接在上），直接绑定
                                 new_items_to_add.append({"name": clean_name, "desc": batch_desc, "url": current_url, "time": beijing_time})
                             else:
-                                # 脑子里没链接（链接在下），扔进池子等收网
                                 text_pool.append(clean_name)
                                 
                     if not new_items_to_add:
